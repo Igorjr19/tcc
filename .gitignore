@@ -1,6 +1,0 @@
-data/repos
-
-venv/
-.venv/
-
-__pycache__/

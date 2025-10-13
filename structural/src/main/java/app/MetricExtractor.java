@@ -17,7 +17,6 @@ import java.util.Set;
  * Esta classe é responsável por percorrer um diretório de projeto,
  * encontrar todos os arquivos .java e invocar o parser para análise.
  *
- * @author Gemini
  */
 public class MetricExtractor {
 
@@ -94,6 +93,12 @@ public class MetricExtractor {
             System.out.println("  RFC: " + classMetrics.get("RFC"));
             System.out.println("  Dependências: " + classMetrics.get("Dependencies"));
         });
+
+        // Exportar métricas para CSV
+        exportMetricsToCSV(metrics, "metrics.csv");
+        
+        // Exportar dependências para CSV
+        exportDependenciesToCSV(metrics, "dependencies.csv");
     }
 
     /**
@@ -115,5 +120,65 @@ public class MetricExtractor {
             }
         }
         return javaFiles;
+    }
+
+    /**
+     * Exporta as métricas para um arquivo CSV.
+     *
+     * @param metrics Mapa com as métricas de cada classe.
+     * @param outputFile Nome do arquivo de saída.
+     */
+    private static void exportMetricsToCSV(Map<String, Map<String, Object>> metrics, String outputFile) {
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(outputFile))) {
+            // Cabeçalho
+            writer.println("Classe,CBO,DIT,LCOM,RFC");
+            
+            // Dados
+            metrics.forEach((className, classMetrics) -> {
+                writer.printf("%s,%s,%s,%s,%s%n",
+                    className,
+                    classMetrics.get("CBO"),
+                    classMetrics.get("DIT"),
+                    classMetrics.get("LCOM"),
+                    classMetrics.get("RFC")
+                );
+            });
+            
+            System.out.println("\nMétricas exportadas para: " + outputFile);
+        } catch (java.io.IOException e) {
+            System.err.println("Erro ao exportar métricas: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Exporta as dependências explícitas para um arquivo CSV.
+     *
+     * @param metrics Mapa com as métricas e dependências de cada classe.
+     * @param outputFile Nome do arquivo de saída.
+     */
+    private static void exportDependenciesToCSV(Map<String, Map<String, Object>> metrics, String outputFile) {
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(outputFile))) {
+            // Cabeçalho
+            writer.println("Classe1,Classe2,DependenciaExplicita");
+            
+            // Dados - extrair pares de dependências
+            metrics.forEach((className, classMetrics) -> {
+                @SuppressWarnings("unchecked")
+                Set<String> dependencies = (Set<String>) classMetrics.get("Dependencies");
+                if (dependencies != null && !dependencies.isEmpty()) {
+                    dependencies.forEach(dependency -> {
+                        // Remove qualificadores de pacote para simplificar
+                        String simpleDependency = dependency.contains(".") 
+                            ? dependency.substring(dependency.lastIndexOf('.') + 1) 
+                            : dependency;
+                        writer.printf("%s,%s,1%n", className, simpleDependency);
+                    });
+                }
+            });
+            
+            System.out.println("Dependências exportadas para: " + outputFile);
+        } catch (java.io.IOException e) {
+            System.err.println("Erro ao exportar dependências: " + e.getMessage());
+        }
     }
 }
