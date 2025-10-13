@@ -1,2 +1,6 @@
-repos/*
-!repos/clone.py
+data/repos
+
+venv/
+.venv/
+
+__pycache__/
