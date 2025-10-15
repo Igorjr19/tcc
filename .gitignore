@@ -1,4 +1,7 @@
 data/repos
+data
+
+results
 
 venv/
 .venv/
