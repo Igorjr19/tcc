@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "node:path";
 import { exec } from "child_process";
 import util from "util";
+import fs from "fs";
 import started from "electron-squirrel-startup";
 
 const execPromise = util.promisify(exec);
@@ -95,6 +96,71 @@ ipcMain.handle("analyze-project", async (_, projectPath: string) => {
     throw new Error("Failed to analyze project");
   }
 });
+
+ipcMain.handle('export-results', async (_, data: string, format: string) => {
+  try {
+    const result = await dialog.showSaveDialog({
+      title: 'Exportar Resultados',
+      defaultPath: `analise-dependencias-${Date.now()}.${format}`,
+      filters: [
+        format === 'json' 
+          ? { name: 'JSON Files', extensions: ['json'] }
+          : { name: 'CSV Files', extensions: ['csv'] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+
+    let content = data;
+    if (format === 'csv') {
+      // Convert JSON to CSV
+      const jsonData = JSON.parse(data);
+      content = convertToCSV(jsonData);
+    }
+
+    fs.writeFileSync(result.filePath, content, 'utf-8');
+    return result.filePath;
+  } catch (error) {
+    console.error('Export error:', error);
+    throw new Error('Failed to export results');
+  }
+});
+
+interface ExportData {
+  dependencies: Array<{
+    groupId: string;
+    artifactId: string;
+    version: string;
+    scope: string;
+    usedByClasses: string[];
+    usedImports: string[];
+  }>;
+}
+
+function convertToCSV(data: ExportData): string {
+  const lines: string[] = [];
+  
+  // Header line
+  lines.push('GroupId,ArtifactId,Version,Scope,ClassesAcopladas,Status,Imports');
+  
+  // Data lines
+  for (const dep of data.dependencies) {
+    const row = [
+      dep.groupId,
+      dep.artifactId,
+      dep.version || 'N/A',
+      dep.scope,
+      dep.usedByClasses.length.toString(),
+      dep.usedByClasses.length > 0 ? 'Usado' : 'Não Usado',
+      dep.usedImports.join('; ')
+    ];
+    lines.push(row.map(field => `"${field}"`).join(','));
+  }
+  
+  return lines.join('\n');
+}
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

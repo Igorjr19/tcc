@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 	openFolderPicker: (): Promise<string | null> => ipcRenderer.invoke('open-folder-picker'),
 	analyzeProject: (projectPath: string): Promise<string> =>
 		ipcRenderer.invoke('analyze-project', projectPath),
+	exportResults: (data: string, format: string): Promise<string | null> =>
+		ipcRenderer.invoke('export-results', data, format),
 });
