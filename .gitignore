@@ -9,3 +9,7 @@ venv/
 __pycache__/
 
 structural/target/
+
+docs
+*.md
+!/README.md
