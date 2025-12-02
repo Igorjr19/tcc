@@ -269,59 +269,23 @@ function displayResults(result: AnalysisResult) {
   tabsContainer.appendChild(contentContainer);
   container.appendChild(tabsContainer);
   
-  // Export and navigation buttons
+  // Navigation button
   const buttonContainer = document.createElement('div');
   buttonContainer.style.marginTop = '30px';
-  buttonContainer.style.display = 'flex';
-  buttonContainer.style.gap = '10px';
-  buttonContainer.style.flexWrap = 'wrap';
   
   const backBtn = document.createElement('button');
   backBtn.textContent = '← Analisar outro projeto';
   backBtn.style.padding = '10px 20px';
+  backBtn.style.cursor = 'pointer';
   backBtn.addEventListener('click', () => window.location.reload());
   
-  const exportJsonBtn = document.createElement('button');
-  exportJsonBtn.textContent = '📄 Exportar JSON';
-  exportJsonBtn.style.padding = '10px 20px';
-  exportJsonBtn.style.backgroundColor = '#2196F3';
-  exportJsonBtn.style.color = 'white';
-  exportJsonBtn.style.border = 'none';
-  exportJsonBtn.style.borderRadius = '4px';
-  exportJsonBtn.style.cursor = 'pointer';
-  exportJsonBtn.addEventListener('click', () => exportData(result, 'json'));
-  
-  const exportCsvBtn = document.createElement('button');
-  exportCsvBtn.textContent = '📊 Exportar CSV';
-  exportCsvBtn.style.padding = '10px 20px';
-  exportCsvBtn.style.backgroundColor = '#4CAF50';
-  exportCsvBtn.style.color = 'white';
-  exportCsvBtn.style.border = 'none';
-  exportCsvBtn.style.borderRadius = '4px';
-  exportCsvBtn.style.cursor = 'pointer';
-  exportCsvBtn.addEventListener('click', () => exportData(result, 'csv'));
-  
   buttonContainer.appendChild(backBtn);
-  buttonContainer.appendChild(exportJsonBtn);
-  buttonContainer.appendChild(exportCsvBtn);
   container.appendChild(buttonContainer);
   
   document.body.appendChild(container);
 }
 
-async function exportData(result: AnalysisResult, format: string) {
-  try {
-    const data = JSON.stringify(result, null, 2);
-    const filePath = await window.electronAPI.exportResults(data, format);
-    
-    if (filePath) {
-      alert(`Arquivo exportado com sucesso em:\\n${filePath}`);
-    }
-  } catch (error) {
-    console.error('Export failed:', error);
-    alert('Falha ao exportar: ' + (error as Error).message);
-  }
-}
+
 
 function createDependencyGraph(classes: ClassInfo[]) {
   const container = document.createElement('div');
