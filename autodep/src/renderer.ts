@@ -27,6 +27,7 @@
  */
 
 import './index.css';
+import { Network } from 'vis-network';
 
 interface ClassInfo {
   className: string;
@@ -185,6 +186,7 @@ function displayResults(result: AnalysisResult) {
   
   const tabs = [
     { id: 'all', label: 'Todas as Classes' },
+    { id: 'graph', label: 'Grafo de Dependências' },
     { id: 'coupling', label: 'Ranking de Acoplamento' },
     { id: 'highly-coupled', label: 'Classes Altamente Acopladas' }
   ];
@@ -213,6 +215,11 @@ function displayResults(result: AnalysisResult) {
       // Show corresponding content
       Object.values(tabContents).forEach(content => content.style.display = 'none');
       tabContents[tab.id].style.display = 'block';
+      
+      // Render graph when tab is shown
+      if (tab.id === 'graph' && (tabContents[tab.id] as any)._renderGraph) {
+        setTimeout(() => (tabContents[tab.id] as any)._renderGraph(), 50);
+      }
     });
     
     tabButtons.appendChild(btn);
@@ -227,6 +234,14 @@ function displayResults(result: AnalysisResult) {
   const allContent = createClassTable(result.classes);
   allContent.style.display = 'block';
   tabContents['all'] = allContent;
+  
+  // Dependency graph
+  const { container: graphContent, renderGraph } = createDependencyGraph(result.classes);
+  graphContent.style.display = 'none';
+  tabContents['graph'] = graphContent;
+  
+  // Store render function for later use
+  (graphContent as any)._renderGraph = renderGraph;
   
   // Coupling ranking
   const couplingContent = createCouplingRanking(result.classes);
@@ -298,6 +313,317 @@ async function exportData(result: AnalysisResult, format: string) {
   }
 }
 
+function createDependencyGraph(classes: ClassInfo[]) {
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  
+  // Controls
+  const controls = document.createElement('div');
+  controls.style.marginBottom = '15px';
+  controls.style.display = 'flex';
+  controls.style.gap = '15px';
+  controls.style.flexWrap = 'wrap';
+  controls.style.alignItems = 'center';
+  
+  // Filter by minimum coupling
+  const couplingLabel = document.createElement('label');
+  couplingLabel.textContent = 'Acoplamento mínimo: ';
+  couplingLabel.style.fontSize = '14px';
+  
+  const couplingSlider = document.createElement('input');
+  couplingSlider.type = 'range';
+  couplingSlider.min = '0';
+  couplingSlider.max = '20';
+  couplingSlider.value = '0';
+  couplingSlider.style.width = '150px';
+  
+  const couplingValue = document.createElement('span');
+  couplingValue.textContent = '0';
+  couplingValue.style.marginLeft = '5px';
+  couplingValue.style.fontWeight = 'bold';
+  
+  couplingSlider.addEventListener('input', () => {
+    couplingValue.textContent = couplingSlider.value;
+    updateGraph();
+  });
+  
+  couplingLabel.appendChild(couplingSlider);
+  couplingLabel.appendChild(couplingValue);
+  
+  // Filter by package
+  const packageLabel = document.createElement('label');
+  packageLabel.textContent = 'Filtrar por pacote: ';
+  packageLabel.style.fontSize = '14px';
+  
+  const packageSelect = document.createElement('select');
+  packageSelect.style.padding = '5px';
+  
+  // Get unique packages
+  const packages = [...new Set(classes.map(c => c.packageName))].sort();
+  packageSelect.innerHTML = '<option value="">Todos os pacotes</option>' + 
+    packages.map(pkg => `<option value="${pkg}">${pkg}</option>`).join('');
+  
+  packageSelect.addEventListener('change', updateGraph);
+  packageLabel.appendChild(packageSelect);
+  
+  // Show interfaces/abstract checkbox
+  const typesLabel = document.createElement('label');
+  typesLabel.style.fontSize = '14px';
+  typesLabel.style.display = 'flex';
+  typesLabel.style.alignItems = 'center';
+  typesLabel.style.gap = '5px';
+  
+  const showInterfacesCheck = document.createElement('input');
+  showInterfacesCheck.type = 'checkbox';
+  showInterfacesCheck.checked = true;
+  showInterfacesCheck.addEventListener('change', updateGraph);
+  
+  typesLabel.appendChild(showInterfacesCheck);
+  typesLabel.appendChild(document.createTextNode('Mostrar Interfaces/Abstratas'));
+  
+  controls.appendChild(couplingLabel);
+  controls.appendChild(packageLabel);
+  controls.appendChild(typesLabel);
+  container.appendChild(controls);
+  
+  // Graph container
+  const graphDiv = document.createElement('div');
+  graphDiv.id = 'dependency-graph';
+  graphDiv.style.width = '100%';
+  graphDiv.style.height = '600px';
+  graphDiv.style.border = '1px solid #ddd';
+  graphDiv.style.borderRadius = '8px';
+  graphDiv.style.backgroundColor = '#fafafa';
+  container.appendChild(graphDiv);
+  
+  // Legend
+  const legend = document.createElement('div');
+  legend.style.marginTop = '15px';
+  legend.style.padding = '15px';
+  legend.style.backgroundColor = '#fff';
+  legend.style.border = '1px solid #ddd';
+  legend.style.borderRadius = '8px';
+  legend.style.display = 'grid';
+  legend.style.gridTemplateColumns = 'repeat(auto-fit, minmax(200px, 1fr))';
+  legend.style.gap = '15px';
+  
+  legend.innerHTML = `
+    <div>
+      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">Cores (Acoplamento)</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #f44336; border-radius: 3px;"></div>
+          <span>Alto (&gt; 10)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #FF9800; border-radius: 3px;"></div>
+          <span>Médio-Alto (6-10)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #FFC107; border-radius: 3px;"></div>
+          <span>Médio (3-5)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #4CAF50; border-radius: 3px;"></div>
+          <span>Baixo (0-2)</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">Formas (Tipo)</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #999; border-radius: 0;"></div>
+          <span>Classe Concreta</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #999; border-radius: 50%;"></div>
+          <span>Interface</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 20px; height: 20px; background: #999; transform: rotate(45deg);"></div>
+          <span>Classe Abstrata</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">Interação</div>
+      <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: #666;">
+        <div>• Clique em um nó para destacar conexões</div>
+        <div>• Arraste para mover o grafo</div>
+        <div>• Scroll para zoom</div>
+        <div>• Passe o mouse para ver detalhes</div>
+      </div>
+    </div>
+  `;
+  container.appendChild(legend);
+  
+  // Stats
+  const stats = document.createElement('div');
+  stats.style.marginTop = '15px';
+  stats.style.padding = '10px';
+  stats.style.backgroundColor = '#f5f5f5';
+  stats.style.borderRadius = '4px';
+  stats.style.fontSize = '12px';
+  stats.style.color = '#666';
+  container.appendChild(stats);
+  
+  let network: Network | null = null;
+  
+  function updateGraph() {
+    const minCoupling = parseInt(couplingSlider.value);
+    const selectedPackage = packageSelect.value;
+    const showInterfaces = showInterfacesCheck.checked;
+    
+    // Filter classes
+    let filteredClasses = classes.filter(cls => {
+      const couplingOut = cls.couplingOut || 0;
+      const couplingIn = cls.couplingIn || 0;
+      const totalCoupling = couplingOut + couplingIn;
+      
+      if (totalCoupling < minCoupling) return false;
+      if (selectedPackage && cls.packageName !== selectedPackage) return false;
+      if (!showInterfaces && (cls.isInterface || cls.isAbstract)) return false;
+      
+      return true;
+    });
+    
+    // Build nodes
+    const nodes = filteredClasses.map(cls => {
+      const couplingOut = cls.couplingOut || 0;
+      const couplingIn = cls.couplingIn || 0;
+      const totalCoupling = couplingOut + couplingIn;
+      
+      // Color based on coupling intensity
+      let color;
+      if (totalCoupling > 10) color = '#f44336';
+      else if (totalCoupling > 5) color = '#FF9800';
+      else if (totalCoupling > 2) color = '#FFC107';
+      else color = '#4CAF50';
+      
+      // Shape based on type
+      let shape = 'box';
+      if (cls.isInterface) shape = 'ellipse';
+      else if (cls.isAbstract) shape = 'diamond';
+      
+      return {
+        id: cls.className,
+        label: cls.simpleName,
+        title: `${cls.className}\nCBO Out: ${couplingOut} | CBO In: ${couplingIn}\nTotal: ${totalCoupling}`,
+        color: { background: color, border: color },
+        shape: shape,
+        font: { size: 14, color: '#000', face: 'arial' }
+      };
+    });
+    
+    // Build edges
+    const classNames = new Set(filteredClasses.map(c => c.className));
+    const edges: any[] = [];
+    
+    filteredClasses.forEach(cls => {
+      if (cls.dependsOn && cls.dependsOn.length > 0) {
+        cls.dependsOn.forEach(dep => {
+          // Only show edges between filtered classes
+          if (classNames.has(dep)) {
+            edges.push({
+              from: cls.className,
+              to: dep,
+              arrows: 'to',
+              color: { color: '#999', opacity: 0.5 },
+              width: 1
+            });
+          }
+        });
+      }
+    });
+    
+    // Update stats
+    stats.innerHTML = `
+      <strong>Estatísticas do Grafo:</strong> 
+      ${nodes.length} classes | ${edges.length} dependências
+    `;
+    
+    // Create/update network
+    const data = { nodes, edges };
+    const options = {
+      layout: {
+        improvedLayout: false,
+        hierarchical: {
+          enabled: false
+        }
+      },
+      physics: {
+        enabled: true,
+        stabilization: {
+          enabled: true,
+          iterations: 100,
+          fit: true
+        },
+        barnesHut: {
+          gravitationalConstant: -3000,
+          centralGravity: 0.1,
+          springLength: 120,
+          springConstant: 0.05,
+          damping: 0.99,
+          avoidOverlap: 0.3
+        },
+        maxVelocity: 15,
+        minVelocity: 1,
+        timestep: 0.35,
+        adaptiveTimestep: true
+      },
+      nodes: {
+        borderWidth: 2,
+        borderWidthSelected: 4,
+        size: 25,
+        font: {
+          size: 14,
+          color: '#000',
+          face: 'arial'
+        }
+      },
+      edges: {
+        smooth: {
+          enabled: true,
+          type: 'continuous',
+          roundness: 0.5
+        }
+      },
+      interaction: {
+        hover: true,
+        tooltipDelay: 100,
+        zoomView: true,
+        dragView: true
+      }
+    };
+    
+    if (network) {
+      network.setData(data);
+    } else {
+      network = new Network(graphDiv, data, options);
+      
+      // Click event to highlight connections
+      network.on('selectNode', (params) => {
+        if (params.nodes.length > 0 && network) {
+          const selectedId = params.nodes[0];
+          const connectedNodes = network.getConnectedNodes(selectedId);
+          const nodesToSelect = [selectedId];
+          if (Array.isArray(connectedNodes)) {
+            nodesToSelect.push(...connectedNodes as string[]);
+          }
+          network.selectNodes(nodesToSelect);
+        }
+      });
+    }
+  }
+  
+  // Return container and render function
+  return { 
+    container, 
+    renderGraph: updateGraph 
+  };
+}
+
 function createClassTable(classes: ClassInfo[]) {
   const div = document.createElement('div');
   
@@ -325,10 +651,8 @@ function createClassTable(classes: ClassInfo[]) {
         const couplingOut = cls.couplingOut || 0;
         const couplingIn = cls.couplingIn || 0;
         const totalCoupling = couplingOut + couplingIn;
-        const instability = (couplingOut + couplingIn) === 0 ? 0 : couplingOut / (couplingOut + couplingIn);
         
         const typeLabel = cls.isInterface ? 'Interface' : cls.isAbstract ? 'Abstrata' : 'Classe';
-        const instabilityColor = instability > 0.7 ? '#f44336' : instability > 0.4 ? '#FF9800' : '#4CAF50';
         const couplingColor = totalCoupling > 10 ? '#f44336' : totalCoupling > 5 ? '#FF9800' : '#4CAF50';
         
         return `
@@ -384,7 +708,6 @@ function createCouplingRanking(classes: ClassInfo[]) {
     const couplingOut = cls.couplingOut || 0;
     const couplingIn = cls.couplingIn || 0;
     const totalCoupling = cls.totalCoupling || (couplingOut + couplingIn);
-    const instability = (couplingOut + couplingIn) === 0 ? 0 : couplingOut / (couplingOut + couplingIn);
     const typeLabel = cls.isInterface ? '(Interface)' : cls.isAbstract ? '(Abstrata)' : '';
     
     card.innerHTML = `
