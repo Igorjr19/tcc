@@ -136,7 +136,7 @@ function displayResults(result: AnalysisResult) {
   // Header
   const header = document.createElement('div');
   header.innerHTML = `
-    <h1>Análise de Acoplamento Estrutural</h1>
+    <h1>Análise de CBO (Coupling Between Objects)</h1>
     <h2>${result.projectName || 'Projeto'}</h2>
     <p style="color: #666;">${result.projectPath}</p>
     <p style="color: #999; font-size: 12px; margin-top: 5px;">
@@ -154,9 +154,9 @@ function displayResults(result: AnalysisResult) {
   
   const cards = [
     { label: 'Total de Classes', value: result.totalClasses, color: '#2196F3' },
-    { label: 'Acoplamento Médio', value: result.averageCoupling.toFixed(2), color: '#4CAF50' },
-    { label: 'Acoplamento Máximo', value: result.maxCoupling, color: '#FF9800' },
-    { label: 'Classes Altamente Acopladas', value: result.highlyCoupledClasses, color: '#f44336' }
+    { label: 'CBO Médio', value: result.averageCoupling.toFixed(2), color: '#4CAF50' },
+    { label: 'CBO Máximo', value: result.maxCoupling, color: '#FF9800' },
+    { label: 'Classes Alto CBO', value: result.highlyCoupledClasses, color: '#f44336' }
   ];
   
   cards.forEach(card => {
@@ -187,8 +187,8 @@ function displayResults(result: AnalysisResult) {
   const tabs = [
     { id: 'all', label: 'Todas as Classes' },
     { id: 'graph', label: 'Grafo de Dependências' },
-    { id: 'coupling', label: 'Ranking de Acoplamento' },
-    { id: 'highly-coupled', label: 'Classes Altamente Acopladas' }
+    { id: 'coupling', label: 'Ranking CBO' },
+    { id: 'highly-coupled', label: 'Classes Alto CBO' }
   ];
   
   const tabContents: { [key: string]: HTMLElement } = {};
@@ -249,7 +249,17 @@ function displayResults(result: AnalysisResult) {
   tabContents['coupling'] = couplingContent;
   
   // Highly coupled classes (top 20% or minimum coupling > 5)
-  const highlyCoupled = result.classes.filter(c => c.totalCoupling >= 5).slice(0, Math.ceil(result.totalClasses * 0.2));
+  const highlyCoupled = result.classes
+    .filter(c => {
+      const total = (c.couplingOut || 0) + (c.couplingIn || 0);
+      return total >= 5;
+    })
+    .sort((a, b) => {
+      const totalA = (a.couplingOut || 0) + (a.couplingIn || 0);
+      const totalB = (b.couplingOut || 0) + (b.couplingIn || 0);
+      return totalB - totalA;
+    })
+    .slice(0, Math.max(Math.ceil(result.totalClasses * 0.2), 10));
   const highlyContent = createClassTable(highlyCoupled);
   highlyContent.style.display = 'none';
   tabContents['highly-coupled'] = highlyContent;
@@ -327,7 +337,7 @@ function createDependencyGraph(classes: ClassInfo[]) {
   
   // Filter by minimum coupling
   const couplingLabel = document.createElement('label');
-  couplingLabel.textContent = 'Acoplamento mínimo: ';
+  couplingLabel.textContent = 'CBO mínimo: ';
   couplingLabel.style.fontSize = '14px';
   
   const couplingSlider = document.createElement('input');
@@ -409,7 +419,7 @@ function createDependencyGraph(classes: ClassInfo[]) {
   
   legend.innerHTML = `
     <div>
-      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">Cores (Acoplamento)</div>
+      <div style="font-weight: bold; margin-bottom: 8px; color: #333;">Cores (CBO)</div>
       <div style="display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <div style="width: 20px; height: 20px; background: #f44336; border-radius: 3px;"></div>
@@ -476,7 +486,7 @@ function createDependencyGraph(classes: ClassInfo[]) {
     const showInterfaces = showInterfacesCheck.checked;
     
     // Filter classes
-    let filteredClasses = classes.filter(cls => {
+    const filteredClasses = classes.filter(cls => {
       const couplingOut = cls.couplingOut || 0;
       const couplingIn = cls.couplingIn || 0;
       const totalCoupling = couplingOut + couplingIn;
@@ -518,7 +528,7 @@ function createDependencyGraph(classes: ClassInfo[]) {
     
     // Build edges
     const classNames = new Set(filteredClasses.map(c => c.className));
-    const edges: any[] = [];
+    const edges: Array<{from: string; to: string; arrows: string; color: {color: string; opacity: number}; width: number}> = [];
     
     filteredClasses.forEach(cls => {
       if (cls.dependsOn && cls.dependsOn.length > 0) {
@@ -540,7 +550,7 @@ function createDependencyGraph(classes: ClassInfo[]) {
     // Update stats
     stats.innerHTML = `
       <strong>Estatísticas do Grafo:</strong> 
-      ${nodes.length} classes | ${edges.length} dependências
+      ${nodes.length} classes | ${edges.length} dependências | CBO médio: ${(nodes.reduce((sum, n) => sum + (classes.find(c => c.className === n.id)?.couplingOut || 0) + (classes.find(c => c.className === n.id)?.couplingIn || 0), 0) / nodes.length).toFixed(2)}
     `;
     
     // Create/update network
@@ -643,7 +653,7 @@ function createClassTable(classes: ClassInfo[]) {
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Tipo</th>
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">CBO Out</th>
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">CBO In</th>
-        <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Total</th>
+        <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">CBO Total</th>
       </tr>
     </thead>
     <tbody>
@@ -728,7 +738,7 @@ function createCouplingRanking(classes: ClassInfo[]) {
             ${totalCoupling}
           </div>
           <div style="font-size: 12px; color: #666;">
-            acoplamento total
+            CBO total
           </div>
           <div style="font-size: 11px; color: #999; margin-top: 3px;">
             Out: ${couplingOut} | In: ${couplingIn}
