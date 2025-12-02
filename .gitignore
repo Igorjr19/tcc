@@ -13,3 +13,4 @@ structural/target/
 docs
 *.md
 !/README.md
+!/autodep/README.md
