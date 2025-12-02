@@ -318,7 +318,6 @@ function createClassTable(classes: ClassInfo[]) {
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">CBO Out</th>
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">CBO In</th>
         <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Total</th>
-        <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Instabilidade</th>
       </tr>
     </thead>
     <tbody>
@@ -346,11 +345,6 @@ function createClassTable(classes: ClassInfo[]) {
           <td style="padding: 10px; text-align: center;">
             <span style="padding: 4px 8px; border-radius: 4px; font-weight: bold; background-color: ${couplingColor}20; color: ${couplingColor};">
               ${totalCoupling}
-            </span>
-          </td>
-          <td style="padding: 10px; text-align: center;">
-            <span style="color: ${instabilityColor};">
-              ${instability.toFixed(2)}
             </span>
           </td>
         </tr>
@@ -403,7 +397,7 @@ function createCouplingRanking(classes: ClassInfo[]) {
             ${cls.packageName}
           </div>
           <div style="font-size: 11px; color: #999; margin-top: 3px;">
-            Métodos: ${cls.methodCount || 0} | Campos: ${cls.fieldCount || 0} | Instabilidade: ${instability.toFixed(2)}
+            Métodos: ${cls.methodCount || 0} | Campos: ${cls.fieldCount || 0}
           </div>
         </div>
         <div style="text-align: right; margin-left: 20px;">
