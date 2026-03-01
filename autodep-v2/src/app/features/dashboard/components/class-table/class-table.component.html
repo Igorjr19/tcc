@@ -1,0 +1,76 @@
+<div class="card p-3 shadow-2 border-round surface-card">
+  <p-table
+    [value]="classes()"
+    [paginator]="true"
+    [rows]="10"
+    [rowsPerPageOptions]="[10, 25, 50]"
+    [globalFilterFields]="['simpleName', 'packageName']"
+    [scrollable]="true"
+    scrollHeight="400px"
+    #dt
+  >
+    <ng-template pTemplate="caption">
+      <div class="flex justify-content-between align-items-center">
+        <h3 class="m-0">Detalhes das Classes</h3>
+        <span class="p-input-icon-left">
+          <i class="pi pi-search"></i>
+          <input
+            pInputText
+            type="text"
+            (input)="dt.filterGlobal($event.target.value, 'contains')"
+            placeholder="Buscar..."
+            class="p-inputtext p-component p-element"
+          />
+        </span>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="header">
+      <tr>
+        <th pSortableColumn="simpleName" style="width: 25%">
+          Classe <p-sortIcon field="simpleName"></p-sortIcon>
+        </th>
+        <th pSortableColumn="packageName" style="width: 30%">
+          Pacote <p-sortIcon field="packageName"></p-sortIcon>
+        </th>
+        <th style="width: 15%">Tipo</th>
+        <th pSortableColumn="couplingOut" style="width: 10%">
+          CBO Out <p-sortIcon field="couplingOut"></p-sortIcon>
+        </th>
+        <th pSortableColumn="couplingIn" style="width: 10%">
+          CBO In <p-sortIcon field="couplingIn"></p-sortIcon>
+        </th>
+        <th pSortableColumn="totalCoupling" style="width: 10%">
+          Total <p-sortIcon field="totalCoupling"></p-sortIcon>
+        </th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-cls>
+      <tr>
+        <td class="font-medium text-800">{{ cls.simpleName }}</td>
+        <td class="text-500 text-sm">{{ cls.packageName }}</td>
+        <td>
+          <p-tag
+            [value]="getTypeLabel(cls)"
+            [severity]="cls.isInterface ? 'info' : cls.isAbstract ? 'warn' : 'secondary'"
+          ></p-tag>
+        </td>
+        <td class="text-center">{{ cls.couplingOut }}</td>
+        <td class="text-center">{{ cls.couplingIn }}</td>
+        <td class="text-center">
+          <p-tag
+            [value]="cls.totalCoupling.toString()"
+            [severity]="getSeverity(cls.totalCoupling)"
+          ></p-tag>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="6" class="text-center p-4">Nenhuma classe encontrada.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</div>

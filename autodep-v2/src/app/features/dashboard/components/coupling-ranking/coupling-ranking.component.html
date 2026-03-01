@@ -1,0 +1,20 @@
+<div class="card p-3 shadow-2 border-round surface-card">
+  <h3 class="m-0 mb-3">Top 10 Classes Acopladas</h3>
+
+  <ul class="list-none p-0 m-0">
+    <li *ngFor="let cls of topClasses(); let i = index" class="mb-4">
+      <div class="flex justify-content-between mb-2">
+        <div>
+          <span class="font-medium mr-2 text-800">{{ i + 1 }}. {{ cls.simpleName }}</span>
+          <span class="text-sm text-500">{{ cls.packageName }}</span>
+        </div>
+        <span class="font-bold ml-3 text-primary">{{ cls.totalCoupling }} CBO</span>
+      </div>
+      <p-progressBar
+        [value]="getPercentage(cls.totalCoupling)"
+        [showValue]="false"
+        color="var(--primary-color)"
+      ></p-progressBar>
+    </li>
+  </ul>
+</div>
