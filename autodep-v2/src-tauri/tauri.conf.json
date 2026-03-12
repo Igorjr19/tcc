@@ -2,11 +2,11 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "autodep",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.autodep.app",
   "build": {
     "frontendDist": "../dist/autodep-v2/browser",
     "devUrl": "http://localhost:4200",
-    "beforeDevCommand": "pnpm start",
+    "beforeDevCommand": "pnpm exec ng serve",
     "beforeBuildCommand": "pnpm build"
   },
   "app": {
