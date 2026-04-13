@@ -1,5 +1,6 @@
 package app.extractor;
 
+import app.miner.CoChangeMiner;
 import app.model.*;
 
 import com.github.javaparser.JavaParser;
@@ -84,12 +85,17 @@ public class ProjectAnalyzer {
             }
         }
 
-        System.err.println("Extraídas " + allEdges.size() + " relações.");
+        System.err.println("Extraídas " + allEdges.size() + " relações estruturais/comportamentais.");
 
-        // 4. Cálculo de métricas CK
+        // 4. Mineração de co-changes (relações lógicas)
+        CoChangeMiner coChangeMiner = new CoChangeMiner();
+        List<EdgeInfo> coChangeEdges = coChangeMiner.mine(projectDir, nodeMap);
+        allEdges.addAll(coChangeEdges);
+
+        // 5. Cálculo de métricas CK
         app.metrics.CKMetricsCalculator.calculateAll(nodeMap, typeDeclarations, compilationUnits, allEdges);
 
-        // 5. Montagem do resultado
+        // 6. Montagem do resultado
         return buildResult(projectDir.getName(), nodeMap, allEdges);
     }
 

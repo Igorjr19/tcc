@@ -9,6 +9,8 @@ public class EdgeInfo {
     private RelationType type;
     private RelationCategory category;
     private double weight;
+    private Integer coChangeCount;
+    private Integer totalCommits;
 
     public EdgeInfo() {}
 
@@ -18,6 +20,13 @@ public class EdgeInfo {
         this.type = type;
         this.category = RelationCategory.fromRelationType(type);
         this.weight = weight;
+    }
+
+    public EdgeInfo(String source, String target, RelationType type, double weight,
+                    int coChangeCount, int totalCommits) {
+        this(source, target, type, weight);
+        this.coChangeCount = coChangeCount;
+        this.totalCommits = totalCommits;
     }
 
     public String getSource() { return source; }
@@ -34,4 +43,10 @@ public class EdgeInfo {
 
     public double getWeight() { return weight; }
     public void setWeight(double weight) { this.weight = weight; }
+
+    public Integer getCoChangeCount() { return coChangeCount; }
+    public void setCoChangeCount(Integer coChangeCount) { this.coChangeCount = coChangeCount; }
+
+    public Integer getTotalCommits() { return totalCommits; }
+    public void setTotalCommits(Integer totalCommits) { this.totalCommits = totalCommits; }
 }
