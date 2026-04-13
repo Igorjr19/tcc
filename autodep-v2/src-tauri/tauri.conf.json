@@ -5,8 +5,8 @@
   "identifier": "com.autodep.app",
   "build": {
     "frontendDist": "../dist/autodep-v2/browser",
-    "devUrl": "http://localhost:4200",
-    "beforeDevCommand": "pnpm exec ng serve",
+    "devUrl": "http://localhost:4210",
+    "beforeDevCommand": "pnpm exec ng serve --port 4210",
     "beforeBuildCommand": "pnpm build"
   },
   "app": {

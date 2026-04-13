@@ -1,6 +1,6 @@
 import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ClassInfo } from '../../../../core/models/ClassInfo';
+import { NodeInfo } from '../../../../core/models/NodeInfo';
 
 @Component({
   selector: 'app-coupling-ranking',
@@ -10,9 +10,9 @@ import { ClassInfo } from '../../../../core/models/ClassInfo';
   styleUrls: ['./coupling-ranking.component.scss'],
 })
 export class CouplingRankingComponent {
-  classes = input.required<ClassInfo[]>();
+  nodes = input.required<NodeInfo[]>();
 
-  topClasses = computed(() => {
-    return [...this.classes()].sort((a, b) => b.totalCoupling - a.totalCoupling).slice(0, 10);
-  });
+  topNodes = computed(() =>
+    [...this.nodes()].sort((a, b) => b.metrics.cbo - a.metrics.cbo).slice(0, 10),
+  );
 }

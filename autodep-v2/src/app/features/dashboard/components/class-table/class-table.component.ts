@@ -1,6 +1,6 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ClassInfo } from '../../../../core/models/ClassInfo';
+import { NodeInfo } from '../../../../core/models/NodeInfo';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 
@@ -12,18 +12,18 @@ import { TagModule } from 'primeng/tag';
   styleUrls: ['./class-table.component.scss'],
 })
 export class ClassTableComponent {
-  classes = input.required<ClassInfo[]>();
+  nodes = input.required<NodeInfo[]>();
 
-  getSeverity(cbo: number): 'success' | 'warn' | 'danger' | 'info' {
+  getCboSeverity(cbo: number): 'success' | 'warn' | 'danger' | 'info' {
     if (cbo > 10) return 'danger';
     if (cbo > 5) return 'warn';
     if (cbo > 2) return 'info';
     return 'success';
   }
 
-  getTypeLabel(cls: ClassInfo): string {
-    if (cls.isInterface) return 'Interface';
-    if (cls.isAbstract) return 'Abstrata';
-    return 'Classe';
+  getLcomSeverity(lcom: number): 'success' | 'warn' | 'danger' | 'info' {
+    if (lcom > 0.8) return 'danger';
+    if (lcom > 0.5) return 'warn';
+    return 'success';
   }
 }

@@ -2,86 +2,88 @@ import { Injectable } from '@angular/core';
 import { AnalysisPort } from './AnalysisPort';
 import { AnalysisResult } from '../models/AnalysisResult';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class MockAnalysisService implements AnalysisPort {
   async openFolderPicker(): Promise<string | null> {
-    // Simulate folder picking delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((r) => setTimeout(r, 300));
     return '/home/user/workspace/mock-project';
   }
 
   async analyzeProject(projectPath: string): Promise<AnalysisResult> {
-    // Simulate analysis delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((r) => setTimeout(r, 1000));
 
-    // Return dummy data
     return {
       projectName: 'mock-project',
-      projectPath: projectPath,
-      projectGroupId: 'com.mock.app',
-      totalClasses: 3,
-      averageCoupling: 3.5,
-      maxCoupling: 12,
-      highlyCoupledClasses: 1,
-      classes: [
+      analyzedAt: new Date().toISOString(),
+      summary: {
+        totalClasses: 5,
+        totalRelationships: 8,
+        totalCoChangeRelationships: 0,
+        averageCBO: 3.4,
+        averageLCOM: 0.32,
+      },
+      nodes: [
         {
-          className: 'com.mock.app.UserService',
+          id: 'com.mock.app.UserService',
           simpleName: 'UserService',
           packageName: 'com.mock.app',
-          filePath: '/home/user/workspace/mock-project/src/main/java/com/mock/app/UserService.java',
+          filePath: 'src/main/java/com/mock/app/UserService.java',
+          type: 'CLASS',
+          metrics: { cbo: 5, lcom: 0.4, dit: 0, noc: 0, rfc: 12, numberOfMethods: 5, numberOfAttributes: 2, linesOfCode: 80 },
           isInterface: false,
           isAbstract: false,
-          methodCount: 5,
-          fieldCount: 2,
-          dependsOn: ['com.mock.app.UserRepository', 'com.mock.app.EmailService'],
-          dependedByClasses: ['com.mock.app.UserController'],
-          couplingOut: 2,
-          couplingIn: 1,
-          totalCoupling: 3,
-          instability: 0.66,
         },
         {
-          className: 'com.mock.app.UserRepository',
+          id: 'com.mock.app.UserRepository',
           simpleName: 'UserRepository',
           packageName: 'com.mock.app',
-          filePath:
-            '/home/user/workspace/mock-project/src/main/java/com/mock/app/UserRepository.java',
+          filePath: 'src/main/java/com/mock/app/UserRepository.java',
+          type: 'INTERFACE',
+          metrics: { cbo: 2, lcom: 0.0, dit: 0, noc: 1, rfc: 3, numberOfMethods: 3, numberOfAttributes: 0, linesOfCode: 15 },
           isInterface: true,
-          isAbstract: true,
-          methodCount: 3,
-          fieldCount: 0,
-          dependsOn: [],
-          dependedByClasses: ['com.mock.app.UserService'],
-          couplingOut: 0,
-          couplingIn: 1,
-          totalCoupling: 1,
-          instability: 0.0,
+          isAbstract: false,
         },
         {
-          className: 'com.mock.app.UserController',
+          id: 'com.mock.app.UserController',
           simpleName: 'UserController',
           packageName: 'com.mock.app',
-          filePath:
-            '/home/user/workspace/mock-project/src/main/java/com/mock/app/UserController.java',
+          filePath: 'src/main/java/com/mock/app/UserController.java',
+          type: 'CLASS',
+          metrics: { cbo: 3, lcom: 0.2, dit: 0, noc: 0, rfc: 8, numberOfMethods: 4, numberOfAttributes: 1, linesOfCode: 60 },
           isInterface: false,
           isAbstract: false,
-          methodCount: 2,
-          fieldCount: 1,
-          dependsOn: ['com.mock.app.UserService'],
-          dependedByClasses: [],
-          couplingOut: 1,
-          couplingIn: 0,
-          totalCoupling: 1,
-          instability: 1.0,
+        },
+        {
+          id: 'com.mock.app.BaseEntity',
+          simpleName: 'BaseEntity',
+          packageName: 'com.mock.app',
+          filePath: 'src/main/java/com/mock/app/BaseEntity.java',
+          type: 'CLASS',
+          metrics: { cbo: 2, lcom: 0.0, dit: 0, noc: 1, rfc: 4, numberOfMethods: 2, numberOfAttributes: 3, linesOfCode: 30 },
+          isInterface: false,
+          isAbstract: true,
+        },
+        {
+          id: 'com.mock.app.User',
+          simpleName: 'User',
+          packageName: 'com.mock.app',
+          filePath: 'src/main/java/com/mock/app/User.java',
+          type: 'CLASS',
+          metrics: { cbo: 5, lcom: 0.2, dit: 1, noc: 0, rfc: 6, numberOfMethods: 4, numberOfAttributes: 4, linesOfCode: 50 },
+          isInterface: false,
+          isAbstract: false,
         },
       ],
+      edges: [
+        { source: 'com.mock.app.User', target: 'com.mock.app.BaseEntity', type: 'INHERITANCE', category: 'STRUCTURAL', weight: 1.0 },
+        { source: 'com.mock.app.UserService', target: 'com.mock.app.UserRepository', type: 'AGGREGATION', category: 'STRUCTURAL', weight: 1.0 },
+        { source: 'com.mock.app.UserService', target: 'com.mock.app.User', type: 'ASSOCIATION', category: 'STRUCTURAL', weight: 1.0 },
+        { source: 'com.mock.app.UserController', target: 'com.mock.app.UserService', type: 'COMPOSITION', category: 'STRUCTURAL', weight: 1.0 },
+        { source: 'com.mock.app.UserService', target: 'com.mock.app.UserRepository', type: 'METHOD_CALL', category: 'BEHAVIORAL', weight: 1.0 },
+        { source: 'com.mock.app.UserController', target: 'com.mock.app.UserService', type: 'METHOD_CALL', category: 'BEHAVIORAL', weight: 1.0 },
+        { source: 'com.mock.app.UserService', target: 'com.mock.app.User', type: 'TYPE_REFERENCE', category: 'BEHAVIORAL', weight: 1.0 },
+        { source: 'com.mock.app.UserController', target: 'com.mock.app.User', type: 'TYPE_REFERENCE', category: 'BEHAVIORAL', weight: 1.0 },
+      ],
     };
-  }
-
-  async exportResults(data: string, format: string): Promise<string | null> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return `/home/user/downloads/export.${format}`;
   }
 }

@@ -1,12 +1,11 @@
-import { ClassInfo } from './ClassInfo';
+import { NodeInfo } from './NodeInfo';
+import { EdgeInfo } from './EdgeInfo';
+import { SummaryInfo } from './SummaryInfo';
 
 export interface AnalysisResult {
   projectName: string;
-  projectPath: string;
-  projectGroupId: string;
-  totalClasses: number;
-  averageCoupling: number;
-  maxCoupling: number;
-  highlyCoupledClasses: number;
-  classes: ClassInfo[];
+  analyzedAt: string;
+  summary: SummaryInfo;
+  nodes: NodeInfo[];
+  edges: EdgeInfo[];
 }

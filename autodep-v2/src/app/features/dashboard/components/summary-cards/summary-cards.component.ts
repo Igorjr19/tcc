@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AnalysisResult } from '../../../../core/models/AnalysisResult';
+import { SummaryInfo } from '../../../../core/models/SummaryInfo';
 
 @Component({
   selector: 'app-summary-cards',
@@ -10,5 +10,5 @@ import { AnalysisResult } from '../../../../core/models/AnalysisResult';
   styleUrls: ['./summary-cards.component.scss'],
 })
 export class SummaryCardsComponent {
-  data = input.required<AnalysisResult>();
+  summary = input.required<SummaryInfo>();
 }
