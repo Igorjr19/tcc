@@ -1,13 +1,25 @@
 
+use std::path::PathBuf;
 use std::process::Command;
+
+fn get_jar_path() -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir.join("../../structural/target/structural-1.0-SNAPSHOT-jar-with-dependencies.jar")
+}
 
 #[tauri::command]
 fn analyze_project(project_path: String) -> Result<String, String> {
-    let jar_path = "/home/igor/projetos/tcc/structural/target/structural-1.0-SNAPSHOT-jar-with-dependencies.jar";
-    
+    let jar_path = get_jar_path();
+    if !jar_path.exists() {
+        return Err(format!(
+            "JAR não encontrado em: {}. Execute 'mvn package' no módulo structural.",
+            jar_path.display()
+        ));
+    }
+
     let output = Command::new("java")
         .arg("-jar")
-        .arg(jar_path)
+        .arg(&jar_path)
         .arg(&project_path)
         .output()
         .map_err(|e| format!("Failed to execute Java command: {}", e))?;

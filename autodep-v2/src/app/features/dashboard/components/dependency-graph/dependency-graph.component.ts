@@ -37,6 +37,8 @@ export class DependencyGraphComponent implements OnDestroy {
   private graphReady = signal(false);
   private lastDataHash = '';
 
+  graphExport = output<string>();
+
   categories: { key: RelationCategory; label: string; color: string }[] = [
     { key: 'STRUCTURAL', label: 'Estrutural', color: '#2196F3' },
     { key: 'BEHAVIORAL', label: 'Comportamental', color: '#FF9800' },
@@ -73,6 +75,17 @@ export class DependencyGraphComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.cy?.destroy();
+  }
+
+  exportPng(): void {
+    if (!this.cy) return;
+    const dataUrl = this.cy.png({ output: 'blob', bg: '#ffffff', scale: 2, full: true });
+    const url = URL.createObjectURL(dataUrl as any);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'grafo-dependencias.png';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   isCategoryActive(cat: RelationCategory): boolean {

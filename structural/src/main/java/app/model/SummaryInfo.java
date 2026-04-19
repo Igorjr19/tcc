@@ -6,9 +6,15 @@ package app.model;
 public class SummaryInfo {
     private int totalClasses;
     private int totalRelationships;
-    private int totalCoChangeRelationships;
-    private double averageCBO;
-    private double averageLCOM;
+    private int structuralRelationships;
+    private int behavioralRelationships;
+    private int logicalRelationships;
+
+    private MetricDistribution cboDistribution;
+    private MetricDistribution lcomDistribution;
+    private MetricDistribution ditDistribution;
+    private MetricDistribution rfcDistribution;
+    private MetricDistribution locDistribution;
 
     public int getTotalClasses() { return totalClasses; }
     public void setTotalClasses(int totalClasses) { this.totalClasses = totalClasses; }
@@ -16,12 +22,27 @@ public class SummaryInfo {
     public int getTotalRelationships() { return totalRelationships; }
     public void setTotalRelationships(int totalRelationships) { this.totalRelationships = totalRelationships; }
 
-    public int getTotalCoChangeRelationships() { return totalCoChangeRelationships; }
-    public void setTotalCoChangeRelationships(int n) { this.totalCoChangeRelationships = n; }
+    public int getStructuralRelationships() { return structuralRelationships; }
+    public void setStructuralRelationships(int n) { this.structuralRelationships = n; }
 
-    public double getAverageCBO() { return averageCBO; }
-    public void setAverageCBO(double averageCBO) { this.averageCBO = averageCBO; }
+    public int getBehavioralRelationships() { return behavioralRelationships; }
+    public void setBehavioralRelationships(int n) { this.behavioralRelationships = n; }
 
-    public double getAverageLCOM() { return averageLCOM; }
-    public void setAverageLCOM(double averageLCOM) { this.averageLCOM = averageLCOM; }
+    public int getLogicalRelationships() { return logicalRelationships; }
+    public void setLogicalRelationships(int n) { this.logicalRelationships = n; }
+
+    public MetricDistribution getCboDistribution() { return cboDistribution; }
+    public void setCboDistribution(MetricDistribution d) { this.cboDistribution = d; }
+
+    public MetricDistribution getLcomDistribution() { return lcomDistribution; }
+    public void setLcomDistribution(MetricDistribution d) { this.lcomDistribution = d; }
+
+    public MetricDistribution getDitDistribution() { return ditDistribution; }
+    public void setDitDistribution(MetricDistribution d) { this.ditDistribution = d; }
+
+    public MetricDistribution getRfcDistribution() { return rfcDistribution; }
+    public void setRfcDistribution(MetricDistribution d) { this.rfcDistribution = d; }
+
+    public MetricDistribution getLocDistribution() { return locDistribution; }
+    public void setLocDistribution(MetricDistribution d) { this.locDistribution = d; }
 }

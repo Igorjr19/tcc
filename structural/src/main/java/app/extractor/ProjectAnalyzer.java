@@ -145,16 +145,29 @@ public class ProjectAnalyzer {
                                        List<EdgeInfo> edges) {
         List<NodeInfo> nodes = new ArrayList<>(nodeMap.values());
 
-        // Resumo
         SummaryInfo summary = new SummaryInfo();
         summary.setTotalClasses(nodes.size());
         summary.setTotalRelationships(edges.size());
-        summary.setTotalCoChangeRelationships(
-                (int) edges.stream().filter(e -> e.getType() == RelationType.CO_CHANGE).count());
-        summary.setAverageCBO(nodes.stream()
-                .mapToInt(n -> n.getMetrics().getCbo()).average().orElse(0));
-        summary.setAverageLCOM(nodes.stream()
-                .mapToDouble(n -> n.getMetrics().getLcom()).average().orElse(0));
+
+        // Contagem por categoria
+        summary.setStructuralRelationships(
+                (int) edges.stream().filter(e -> e.getCategory() == RelationCategory.STRUCTURAL).count());
+        summary.setBehavioralRelationships(
+                (int) edges.stream().filter(e -> e.getCategory() == RelationCategory.BEHAVIORAL).count());
+        summary.setLogicalRelationships(
+                (int) edges.stream().filter(e -> e.getCategory() == RelationCategory.LOGICAL).count());
+
+        // Distribuições estatísticas
+        summary.setCboDistribution(MetricDistribution.fromValues(
+                nodes.stream().map(n -> (double) n.getMetrics().getCbo()).collect(Collectors.toList())));
+        summary.setLcomDistribution(MetricDistribution.fromValues(
+                nodes.stream().map(n -> n.getMetrics().getLcom()).collect(Collectors.toList())));
+        summary.setDitDistribution(MetricDistribution.fromValues(
+                nodes.stream().map(n -> (double) n.getMetrics().getDit()).collect(Collectors.toList())));
+        summary.setRfcDistribution(MetricDistribution.fromValues(
+                nodes.stream().map(n -> (double) n.getMetrics().getRfc()).collect(Collectors.toList())));
+        summary.setLocDistribution(MetricDistribution.fromValues(
+                nodes.stream().map(n -> (double) n.getMetrics().getLinesOfCode()).collect(Collectors.toList())));
 
         AnalysisResult result = new AnalysisResult();
         result.setProjectName(projectName);

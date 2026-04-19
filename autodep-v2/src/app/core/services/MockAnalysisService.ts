@@ -18,9 +18,14 @@ export class MockAnalysisService implements AnalysisPort {
       summary: {
         totalClasses: 5,
         totalRelationships: 8,
-        totalCoChangeRelationships: 0,
-        averageCBO: 3.4,
-        averageLCOM: 0.32,
+        structuralRelationships: 4,
+        behavioralRelationships: 4,
+        logicalRelationships: 0,
+        cboDistribution: { min: 2, max: 5, mean: 3.4, median: 3, stddev: 1.36 },
+        lcomDistribution: { min: 0, max: 0.4, mean: 0.16, median: 0.2, stddev: 0.15 },
+        ditDistribution: { min: 0, max: 1, mean: 0.2, median: 0, stddev: 0.4 },
+        rfcDistribution: { min: 3, max: 12, mean: 6.6, median: 6, stddev: 3.2 },
+        locDistribution: { min: 15, max: 80, mean: 47, median: 50, stddev: 22.5 },
       },
       nodes: [
         {

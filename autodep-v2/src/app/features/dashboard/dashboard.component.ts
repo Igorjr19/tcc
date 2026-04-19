@@ -33,4 +33,27 @@ export class DashboardComponent {
   onCategoryToggled(cat: RelationCategory): void {
     this.facade.toggleCategory(cat);
   }
+
+  onPackageFilterChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.facade.setPackageFilter(value || null);
+  }
+
+  onMinCboChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    this.facade.setMinCboFilter(isNaN(value) ? 0 : value);
+  }
+
+  exportJson(): void {
+    const data = this.facade.analysisData();
+    if (!data) return;
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.projectName}-analysis.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }

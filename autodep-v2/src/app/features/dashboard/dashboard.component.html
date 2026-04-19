@@ -25,6 +25,13 @@
         [loading]="facade.isLoading()"
         (onClick)="facade.runAnalysis()"
       />
+      <p-button
+        *ngIf="facade.analysisData()"
+        label="Exportar JSON"
+        icon="pi pi-download"
+        severity="secondary"
+        (onClick)="exportJson()"
+      />
     </div>
   </header>
 
@@ -52,11 +59,50 @@
   <main *ngIf="facade.analysisData() as data">
     <app-summary-cards [summary]="data.summary" class="block mb-4"></app-summary-cards>
 
+    <!-- Filtros do grafo -->
+    <div class="surface-card shadow-2 p-3 border-round mb-4">
+      <div class="flex align-items-center gap-3 flex-wrap">
+        <span class="font-medium text-700">
+          <i class="pi pi-filter mr-1"></i> Filtros
+        </span>
+
+        <div class="flex align-items-center gap-2">
+          <label class="text-sm text-600">Pacote:</label>
+          <select
+            class="p-inputtext p-component text-sm"
+            [value]="facade.packageFilter() ?? ''"
+            (change)="onPackageFilterChange($event)"
+          >
+            <option value="">Todos ({{ data.nodes.length }})</option>
+            <option *ngFor="let pkg of facade.availablePackages()" [value]="pkg">
+              {{ pkg }}
+            </option>
+          </select>
+        </div>
+
+        <div class="flex align-items-center gap-2">
+          <label class="text-sm text-600">CBO min:</label>
+          <input
+            type="number"
+            class="p-inputtext p-component text-sm"
+            style="width: 4rem"
+            [value]="facade.minCboFilter()"
+            min="0"
+            (change)="onMinCboChange($event)"
+          />
+        </div>
+
+        <span class="text-sm text-500">
+          {{ facade.filteredNodes().length }} classes, {{ facade.filteredEdges().length }} relações
+        </span>
+      </div>
+    </div>
+
     <div class="grid mb-4">
       <div class="col-12 xl:col-8">
         <app-dependency-graph
-          [nodes]="data.nodes"
-          [edges]="data.edges"
+          [nodes]="facade.filteredNodes()"
+          [edges]="facade.filteredEdges()"
           [activeCategories]="facade.activeCategories()"
           (nodeSelected)="facade.selectNode($event)"
           (categoryToggled)="onCategoryToggled($event)"

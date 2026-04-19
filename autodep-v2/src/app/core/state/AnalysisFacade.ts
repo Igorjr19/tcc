@@ -16,6 +16,8 @@ export class AnalysisFacade {
   private readonly _activeCategories = signal<Set<RelationCategory>>(
     new Set(['STRUCTURAL', 'BEHAVIORAL', 'LOGICAL']),
   );
+  private readonly _packageFilter = signal<string | null>(null);
+  private readonly _minCboFilter = signal<number>(0);
 
   readonly analysisData = computed(() => this._analysisData());
   readonly selectedPath = computed(() => this._selectedPath());
@@ -23,12 +25,36 @@ export class AnalysisFacade {
   readonly error = computed(() => this._error());
   readonly selectedNode = computed(() => this._selectedNode());
   readonly activeCategories = computed(() => this._activeCategories());
+  readonly packageFilter = computed(() => this._packageFilter());
+  readonly minCboFilter = computed(() => this._minCboFilter());
+
+  readonly availablePackages = computed(() => {
+    const data = this._analysisData();
+    if (!data) return [];
+    const pkgs = new Set(data.nodes.map((n) => n.packageName));
+    return [...pkgs].sort();
+  });
+
+  readonly filteredNodes = computed(() => {
+    const data = this._analysisData();
+    if (!data) return [];
+    const pkg = this._packageFilter();
+    const minCbo = this._minCboFilter();
+    return data.nodes.filter((n) => {
+      if (pkg && n.packageName !== pkg) return false;
+      if (minCbo > 0 && n.metrics.cbo < minCbo) return false;
+      return true;
+    });
+  });
 
   readonly filteredEdges = computed(() => {
     const data = this._analysisData();
     const cats = this._activeCategories();
     if (!data) return [];
-    return data.edges.filter((e) => cats.has(e.category));
+    const nodeIds = new Set(this.filteredNodes().map((n) => n.id));
+    return data.edges.filter(
+      (e) => cats.has(e.category) && nodeIds.has(e.source) && nodeIds.has(e.target),
+    );
   });
 
   async selectProjectFolder(): Promise<void> {
@@ -76,10 +102,20 @@ export class AnalysisFacade {
     this._activeCategories.set(current);
   }
 
+  setPackageFilter(pkg: string | null): void {
+    this._packageFilter.set(pkg);
+  }
+
+  setMinCboFilter(value: number): void {
+    this._minCboFilter.set(value);
+  }
+
   reset(): void {
     this._analysisData.set(null);
     this._selectedPath.set(null);
     this._selectedNode.set(null);
     this._error.set(null);
+    this._packageFilter.set(null);
+    this._minCboFilter.set(0);
   }
 }
