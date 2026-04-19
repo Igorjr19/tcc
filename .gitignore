@@ -1,16 +1,23 @@
-data/repos
-data
+# Build artifacts
+engine/target/
 
-results
+# Node/Angular
+app/node_modules/
+app/.angular/
+app/dist/
 
+# Tauri
+app/src-tauri/target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+
+# Python (caso volte a usar scripts)
+__pycache__/
 venv/
 .venv/
-
-__pycache__/
-
-structural/target/
-
-docs
-*.md
-!/README.md
-!/autodep/README.md

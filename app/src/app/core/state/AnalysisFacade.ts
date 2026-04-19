@@ -1,0 +1,121 @@
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { AnalysisResult } from '../models/AnalysisResult';
+import { NodeInfo } from '../models/NodeInfo';
+import { RelationCategory } from '../models/types';
+import { ANALYSIS_SERVICE_TOKEN } from '../services/AnalysisPort';
+
+@Injectable({ providedIn: 'root' })
+export class AnalysisFacade {
+  private analysisService = inject(ANALYSIS_SERVICE_TOKEN);
+
+  private readonly _analysisData = signal<AnalysisResult | null>(null);
+  private readonly _selectedPath = signal<string | null>(null);
+  private readonly _isLoading = signal(false);
+  private readonly _error = signal<string | null>(null);
+  private readonly _selectedNode = signal<NodeInfo | null>(null);
+  private readonly _activeCategories = signal<Set<RelationCategory>>(
+    new Set(['STRUCTURAL', 'BEHAVIORAL', 'LOGICAL']),
+  );
+  private readonly _packageFilter = signal<string | null>(null);
+  private readonly _minCboFilter = signal<number>(0);
+
+  readonly analysisData = computed(() => this._analysisData());
+  readonly selectedPath = computed(() => this._selectedPath());
+  readonly isLoading = computed(() => this._isLoading());
+  readonly error = computed(() => this._error());
+  readonly selectedNode = computed(() => this._selectedNode());
+  readonly activeCategories = computed(() => this._activeCategories());
+  readonly packageFilter = computed(() => this._packageFilter());
+  readonly minCboFilter = computed(() => this._minCboFilter());
+
+  readonly availablePackages = computed(() => {
+    const data = this._analysisData();
+    if (!data) return [];
+    const pkgs = new Set(data.nodes.map((n) => n.packageName));
+    return [...pkgs].sort();
+  });
+
+  readonly filteredNodes = computed(() => {
+    const data = this._analysisData();
+    if (!data) return [];
+    const pkg = this._packageFilter();
+    const minCbo = this._minCboFilter();
+    return data.nodes.filter((n) => {
+      if (pkg && n.packageName !== pkg) return false;
+      if (minCbo > 0 && n.metrics.cbo < minCbo) return false;
+      return true;
+    });
+  });
+
+  readonly filteredEdges = computed(() => {
+    const data = this._analysisData();
+    const cats = this._activeCategories();
+    if (!data) return [];
+    const nodeIds = new Set(this.filteredNodes().map((n) => n.id));
+    return data.edges.filter(
+      (e) => cats.has(e.category) && nodeIds.has(e.source) && nodeIds.has(e.target),
+    );
+  });
+
+  async selectProjectFolder(): Promise<void> {
+    try {
+      this._error.set(null);
+      const path = await this.analysisService.openFolderPicker();
+      if (path) this._selectedPath.set(path);
+    } catch (err: any) {
+      this._error.set(err.message || 'Falha ao selecionar pasta');
+    }
+  }
+
+  async runAnalysis(): Promise<void> {
+    const currentPath = this._selectedPath();
+    if (!currentPath) {
+      this._error.set('Nenhum projeto selecionado');
+      return;
+    }
+
+    this._isLoading.set(true);
+    this._error.set(null);
+    this._selectedNode.set(null);
+
+    try {
+      const result = await this.analysisService.analyzeProject(currentPath);
+      this._analysisData.set(result);
+    } catch (err: any) {
+      this._error.set(err.message || 'Falha na análise');
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  selectNode(node: NodeInfo | null): void {
+    this._selectedNode.set(node);
+  }
+
+  toggleCategory(cat: RelationCategory): void {
+    const current = new Set(this._activeCategories());
+    if (current.has(cat)) {
+      current.delete(cat);
+    } else {
+      current.add(cat);
+    }
+    this._activeCategories.set(current);
+  }
+
+  setPackageFilter(pkg: string | null): void {
+    this._packageFilter.set(pkg);
+  }
+
+  setMinCboFilter(value: number): void {
+    this._minCboFilter.set(value);
+  }
+
+  reset(): void {
+    this._analysisData.set(null);
+    this._selectedPath.set(null);
+    this._selectedNode.set(null);
+    this._error.set(null);
+    this._packageFilter.set(null);
+    this._minCboFilter.set(0);
+  }
+}
