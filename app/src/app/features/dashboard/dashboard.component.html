@@ -101,9 +101,10 @@
     <div class="grid mb-4">
       <div class="col-12 xl:col-8">
         <app-dependency-graph
-          [nodes]="facade.filteredNodes()"
-          [edges]="facade.filteredEdges()"
+          [nodes]="data.nodes"
+          [edges]="data.edges"
           [activeCategories]="facade.activeCategories()"
+          [visibleNodeIds]="facade.visibleNodeIds()"
           (nodeSelected)="facade.selectNode($event)"
           (categoryToggled)="onCategoryToggled($event)"
         ></app-dependency-graph>

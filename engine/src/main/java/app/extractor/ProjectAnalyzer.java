@@ -48,6 +48,7 @@ public class ProjectAnalyzer {
         Map<String, NodeInfo> nodeMap = new LinkedHashMap<>();
         Map<String, TypeDeclaration<?>> typeDeclarations = new LinkedHashMap<>();
         Map<String, CompilationUnit> compilationUnits = new LinkedHashMap<>();
+        Map<String, String> duplicateFqns = new LinkedHashMap<>();
 
         for (File javaFile : javaFiles) {
             try {
@@ -59,10 +60,22 @@ public class ProjectAnalyzer {
                         .map(pd -> pd.getNameAsString()).orElse("");
 
                 processTypeDeclarations(cu, packageName, javaFile, projectDir,
-                        nodeMap, typeDeclarations, compilationUnits);
+                        nodeMap, typeDeclarations, compilationUnits, duplicateFqns);
             } catch (Exception e) {
                 System.err.println("Warning: falha ao processar " + javaFile.getName() + ": " + e.getMessage());
             }
+        }
+
+        if (!duplicateFqns.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            duplicateFqns.entrySet().stream().limit(3).forEach(e ->
+                    sb.append("\n  - ").append(e.getKey()).append(" (").append(e.getValue()).append(")"));
+            if (duplicateFqns.size() > 3) {
+                sb.append("\n  ... e mais ").append(duplicateFqns.size() - 3);
+            }
+            throw new IllegalStateException(
+                    "Classes duplicadas detectadas: a pasta selecionada parece conter múltiplos projetos Java com classes de mesmo nome completo. "
+                    + "Selecione a raiz de um único projeto. Exemplos:" + sb);
         }
 
         System.err.println("Processados " + nodeMap.size() + " tipos.");
@@ -107,12 +120,19 @@ public class ProjectAnalyzer {
                                          File javaFile, File projectDir,
                                          Map<String, NodeInfo> nodeMap,
                                          Map<String, TypeDeclaration<?>> typeDeclarations,
-                                         Map<String, CompilationUnit> compilationUnits) {
+                                         Map<String, CompilationUnit> compilationUnits,
+                                         Map<String, String> duplicateFqns) {
         String relativePath = projectDir.toPath().relativize(javaFile.toPath()).toString();
 
         for (TypeDeclaration<?> td : cu.getTypes()) {
             String simpleName = td.getNameAsString();
             String fqn = packageName.isEmpty() ? simpleName : packageName + "." + simpleName;
+
+            NodeInfo existing = nodeMap.get(fqn);
+            if (existing != null && !existing.getFilePath().equals(relativePath)) {
+                duplicateFqns.putIfAbsent(fqn, existing.getFilePath() + " vs " + relativePath);
+                continue;
+            }
 
             NodeInfo node = new NodeInfo();
             node.setId(fqn);

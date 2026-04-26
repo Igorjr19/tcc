@@ -35,25 +35,36 @@ export class AnalysisFacade {
     return [...pkgs].sort();
   });
 
+  readonly visibleNodeIds = computed(() => {
+    const data = this._analysisData();
+    if (!data) return new Set<string>();
+    const pkg = this._packageFilter();
+    const minCbo = this._minCboFilter();
+    return new Set(
+      data.nodes
+        .filter((n) => {
+          if (pkg && n.packageName !== pkg) return false;
+          if (minCbo > 0 && n.metrics.cbo < minCbo) return false;
+          return true;
+        })
+        .map((n) => n.id),
+    );
+  });
+
   readonly filteredNodes = computed(() => {
     const data = this._analysisData();
     if (!data) return [];
-    const pkg = this._packageFilter();
-    const minCbo = this._minCboFilter();
-    return data.nodes.filter((n) => {
-      if (pkg && n.packageName !== pkg) return false;
-      if (minCbo > 0 && n.metrics.cbo < minCbo) return false;
-      return true;
-    });
+    const ids = this.visibleNodeIds();
+    return data.nodes.filter((n) => ids.has(n.id));
   });
 
   readonly filteredEdges = computed(() => {
     const data = this._analysisData();
-    const cats = this._activeCategories();
     if (!data) return [];
-    const nodeIds = new Set(this.filteredNodes().map((n) => n.id));
+    const ids = this.visibleNodeIds();
+    const cats = this._activeCategories();
     return data.edges.filter(
-      (e) => cats.has(e.category) && nodeIds.has(e.source) && nodeIds.has(e.target),
+      (e) => cats.has(e.category) && ids.has(e.source) && ids.has(e.target),
     );
   });
 
@@ -77,6 +88,8 @@ export class AnalysisFacade {
     this._isLoading.set(true);
     this._error.set(null);
     this._selectedNode.set(null);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     try {
       const result = await this.analysisService.analyzeProject(currentPath);

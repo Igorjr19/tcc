@@ -27,6 +27,7 @@ export class DependencyGraphComponent implements OnDestroy {
   nodes = input.required<NodeInfo[]>();
   edges = input.required<EdgeInfo[]>();
   activeCategories = input.required<Set<RelationCategory>>();
+  visibleNodeIds = input.required<Set<string>>();
 
   nodeSelected = output<NodeInfo | null>();
   categoryToggled = output<RelationCategory>();
@@ -35,7 +36,7 @@ export class DependencyGraphComponent implements OnDestroy {
 
   private cy: cytoscape.Core | null = null;
   private graphReady = signal(false);
-  private lastDataHash = '';
+  private lastDatasetKey = '';
 
   graphExport = output<string>();
 
@@ -51,26 +52,33 @@ export class DependencyGraphComponent implements OnDestroy {
       this.graphReady.set(true);
     });
 
-    // Rebuild graph when data changes
     effect(() => {
       const nodes = this.nodes();
       const edges = this.edges();
       const ready = this.graphReady();
-      const hash = nodes.length + ':' + edges.length;
-      if (ready && this.cy && hash !== this.lastDataHash) {
-        this.lastDataHash = hash;
+      const key = this.computeDatasetKey(nodes, edges);
+      if (ready && this.cy && key !== this.lastDatasetKey) {
+        this.lastDatasetKey = key;
         this.rebuildGraph(nodes, edges);
+        this.applyVisibility(this.visibleNodeIds(), this.activeCategories());
       }
     });
 
-    // Filter edges when categories change
     effect(() => {
+      const visible = this.visibleNodeIds();
       const cats = this.activeCategories();
       const ready = this.graphReady();
       if (ready && this.cy) {
-        this.applyEdgeFilter(cats);
+        this.applyVisibility(visible, cats);
       }
     });
+  }
+
+  private computeDatasetKey(nodes: NodeInfo[], edges: EdgeInfo[]): string {
+    const firstN = nodes[0]?.id ?? '';
+    const lastN = nodes[nodes.length - 1]?.id ?? '';
+    const firstE = edges[0] ? `${edges[0].source}->${edges[0].target}` : '';
+    return `${nodes.length}:${edges.length}:${firstN}:${lastN}:${firstE}`;
   }
 
   ngOnDestroy(): void {
@@ -113,13 +121,19 @@ export class DependencyGraphComponent implements OnDestroy {
       }
     });
 
-    this.rebuildGraph(this.nodes(), this.edges());
+    const nodes = this.nodes();
+    const edges = this.edges();
+    this.lastDatasetKey = this.computeDatasetKey(nodes, edges);
+    this.rebuildGraph(nodes, edges);
+    this.applyVisibility(this.visibleNodeIds(), this.activeCategories());
   }
 
   private rebuildGraph(nodes: NodeInfo[], edges: EdgeInfo[]): void {
     if (!this.cy) return;
-    this.cy.elements().remove();
-    this.cy.add(this.buildElements(nodes, edges));
+    this.cy.batch(() => {
+      this.cy!.elements().remove();
+      this.cy!.add(this.buildElements(nodes, edges));
+    });
     this.cy
       .layout({
         name: 'cose',
@@ -133,7 +147,6 @@ export class DependencyGraphComponent implements OnDestroy {
         padding: 40,
       } as any)
       .run();
-    this.applyEdgeFilter(this.activeCategories());
   }
 
   private buildElements(
@@ -167,15 +180,23 @@ export class DependencyGraphComponent implements OnDestroy {
     return [...nodeElements, ...edgeElements];
   }
 
-  private applyEdgeFilter(active: Set<RelationCategory>): void {
+  private applyVisibility(
+    visibleNodeIds: Set<string>,
+    activeCategories: Set<RelationCategory>,
+  ): void {
     if (!this.cy) return;
-    this.cy.edges().forEach((edge) => {
-      const cat = edge.data('category') as RelationCategory;
-      if (active.has(cat)) {
-        edge.style('display', 'element');
-      } else {
-        edge.style('display', 'none');
-      }
+    this.cy.batch(() => {
+      this.cy!.nodes().forEach((node) => {
+        node.style('display', visibleNodeIds.has(node.id()) ? 'element' : 'none');
+      });
+      this.cy!.edges().forEach((edge) => {
+        const cat = edge.data('category') as RelationCategory;
+        const src = edge.data('source') as string;
+        const tgt = edge.data('target') as string;
+        const show =
+          activeCategories.has(cat) && visibleNodeIds.has(src) && visibleNodeIds.has(tgt);
+        edge.style('display', show ? 'element' : 'none');
+      });
     });
   }
 
