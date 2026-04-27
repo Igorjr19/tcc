@@ -19,8 +19,8 @@ import java.util.*;
  * <p>Métricas calculadas:
  * <ul>
  *   <li><b>CBO</b> — Coupling Between Objects: classes distintas acopladas (bidirecional).</li>
- *   <li><b>LCOM</b> — Lack of Cohesion in Methods: proporção de pares de métodos
- *       que não compartilham acesso a atributos da classe (0 a 1).</li>
+ *   <li><b>LCOM-HS</b> — Lack of Cohesion in Methods (Henderson-Sellers 1996):
+ *       (m − μ̄) / (m − 1), normalizada em [0, 1].</li>
  *   <li><b>DIT</b> — Depth of Inheritance Tree: profundidade na hierarquia.</li>
  *   <li><b>NOC</b> — Number of Children: subclasses diretas.</li>
  *   <li><b>RFC</b> — Response for a Class: métodos próprios + métodos externos invocados.</li>
@@ -126,72 +126,68 @@ public class CKMetricsCalculator {
     }
 
     /**
-     * LCOM: proporção de pares de métodos que NÃO compartilham acesso a atributos.
+     * LCOM-HS (Henderson-Sellers 1996): variante normalizada da Lack of Cohesion in Methods.
      *
-     * <p>Para cada par de métodos (M_i, M_j):
+     * <p>Fórmula: {@code LCOM = (m − μ̄) / (m − 1)}, onde:
      * <ul>
-     *   <li>Se a interseção dos atributos acessados é vazia → P++</li>
-     *   <li>Caso contrário → Q++</li>
+     *   <li>{@code m} = número de métodos da classe</li>
+     *   <li>{@code a} = número de atributos da classe</li>
+     *   <li>{@code μ(A)} = quantidade de métodos que acessam o atributo {@code A}</li>
+     *   <li>{@code μ̄} = (1 / a) · Σ μ(A)</li>
      * </ul>
-     * LCOM = P / (P + Q), ou 0 se não houver pares.
+     *
+     * <p>Resultados em [0, 1]: 0 = todos os métodos acessam todos os atributos (coesão máxima),
+     * 1 = nenhum método compartilha atributo com outro (coesão nula). Casos degenerados
+     * (m ≤ 1 ou a = 0) retornam 0 por convenção, alinhado à CK do Aniche.
+     *
+     * <p>Referências:
+     * <ul>
+     *   <li>Chidamber & Kemerer (1994) — definição original (LCOM2)</li>
+     *   <li>Henderson-Sellers (1996), <i>Object-Oriented Metrics: Measures of Complexity</i> — forma normalizada</li>
+     * </ul>
      */
     private static void calculateLCOM(NodeInfo node, TypeDeclaration<?> td) {
-        // Coleta todos os nomes de campos da classe
         Set<String> classFields = new HashSet<>();
         for (FieldDeclaration field : td.getFields()) {
             for (VariableDeclarator v : field.getVariables()) {
                 classFields.add(v.getNameAsString());
             }
         }
+        int a = classFields.size();
+        int m = td.getMethods().size();
 
-        if (classFields.isEmpty()) {
+        if (a == 0 || m <= 1) {
             node.getMetrics().setLcom(0);
             return;
         }
 
-        // Para cada método, determina quais campos da classe ele acessa
-        List<Set<String>> methodFieldSets = new ArrayList<>();
+        long totalAccesses = 0;
         for (MethodDeclaration method : td.getMethods()) {
             Set<String> accessed = new HashSet<>();
 
-            // NameExpr que coincidem com nomes de campos
             method.findAll(NameExpr.class).forEach(ne -> {
                 if (classFields.contains(ne.getNameAsString())) {
                     accessed.add(ne.getNameAsString());
                 }
             });
-
-            // this.field
             method.findAll(FieldAccessExpr.class).forEach(fa -> {
-                if (fa.getScope() instanceof ThisExpr) {
-                    if (classFields.contains(fa.getNameAsString())) {
-                        accessed.add(fa.getNameAsString());
-                    }
+                if (fa.getScope() instanceof ThisExpr
+                        && classFields.contains(fa.getNameAsString())) {
+                    accessed.add(fa.getNameAsString());
                 }
             });
 
-            methodFieldSets.add(accessed);
+            totalAccesses += accessed.size();
         }
 
-        if (methodFieldSets.size() <= 1) {
-            node.getMetrics().setLcom(0);
-            return;
-        }
+        double meanAccess = (double) totalAccesses / a;
+        double lcom = (m - meanAccess) / (m - 1);
 
-        int p = 0, q = 0;
-        for (int i = 0; i < methodFieldSets.size(); i++) {
-            for (int j = i + 1; j < methodFieldSets.size(); j++) {
-                Set<String> intersection = new HashSet<>(methodFieldSets.get(i));
-                intersection.retainAll(methodFieldSets.get(j));
-                if (intersection.isEmpty()) {
-                    p++;
-                } else {
-                    q++;
-                }
-            }
-        }
+        // Clamp para [0, 1] — quando μ̄ > m (raro, ocorre em classes com muitos atributos
+        // todos acessados por todos os métodos) o numerador fica negativo.
+        if (lcom < 0) lcom = 0;
+        if (lcom > 1) lcom = 1;
 
-        double lcom = (p + q) > 0 ? (double) p / (p + q) : 0;
         node.getMetrics().setLcom(Math.round(lcom * 100.0) / 100.0);
     }
 
